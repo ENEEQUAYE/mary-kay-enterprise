@@ -1,27 +1,54 @@
 "use client"
 
-import { useState } from "react"
-import { products } from "@/lib/data"
-import { notFound } from "next/navigation"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react"
 import { useCart } from "@/components/cart-provider"
-import { Minus, Plus, ShoppingCart, Star } from "lucide-react"
+import { notFound } from "next/navigation"
 import { toast } from "@/components/ui/use-toast"
-import { Separator } from "@/components/ui/separator"
+import Image from "next/image"
 import RelatedProducts from "@/components/related-products"
 
 export default function ProductPage({ params }: { params: { id: string } }) {
-  const product = products.find((p) => p.id === params.id)
-
-  if (!product) {
-    notFound()
-  }
-
-  const { addToCart } = useCart()
+  const [product, setProduct] = useState<any>(null)
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([])
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const { addToCart } = useCart()
+
+  // Fetch product details
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${params.id}`)
+        if (!response.ok) {
+          throw new Error("Product not found")
+        }
+        const data = await response.json()
+        setProduct(data.product)
+
+        // Fetch related products
+        const relatedResponse = await fetch(`/api/products?category=${data.product.category}`)
+        if (relatedResponse.ok) {
+          const relatedData = await relatedResponse.json()
+          setRelatedProducts(
+            relatedData.products.filter((p: any) => p._id !== data.product._id).slice(0, 4)
+          )
+        }
+      } catch (error) {
+        console.error("Error fetching product:", error)
+        notFound()
+      }
+    }
+
+    fetchProduct()
+  }, [params.id])
+
+  if (!product) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Loading product details...</p>
+      </div>
+    )
+  }
 
   const handleAddToCart = () => {
     addToCart(product, quantity)
@@ -31,202 +58,73 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     })
   }
 
-  const incrementQuantity = () => {
-    setQuantity((prev) => prev + 1)
-  }
-
-  const decrementQuantity = () => {
-    setQuantity((prev) => (prev > 1 ? prev - 1 : 1))
-  }
-
-  // Find related products in the same category
-  const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4)
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+    <div className="container mx-auto p-4">
+      {/* Product Details */}
+      <div className="flex flex-col md:flex-row gap-8">
         {/* Product Images */}
-        <div className="space-y-4">
-          <div className="aspect-square relative rounded-lg overflow-hidden border">
-            <Image
-              src={product.images[selectedImage] || "/placeholder.svg"}
-              alt={product.name}
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            {product.images.map((image, index) => (
-              <button
+        <div className="flex flex-col gap-4">
+          <Image
+            src={product.images[selectedImage]}
+            alt={product.name}
+            width={500}
+            height={500}
+            className="rounded-lg"
+          />
+          <div className="flex gap-2">
+            {product.images.map((image: string, index: number) => (
+              <Image
                 key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`relative w-20 h-20 rounded-md overflow-hidden border-2 ${
-                  selectedImage === index ? "border-primary" : "border-transparent"
+                src={image}
+                alt={`${product.name} - ${index + 1}`}
+                width={100}
+                height={100}
+                className={`cursor-pointer rounded-md ${
+                  selectedImage === index ? "border-2 border-blue-500" : ""
                 }`}
-              >
-                <Image
-                  src={image || "/placeholder.svg"}
-                  alt={`${product.name} - view ${index + 1}`}
-                  fill
-                  className="object-cover"
-                />
-              </button>
+                onClick={() => setSelectedImage(index)}
+              />
             ))}
           </div>
         </div>
 
-        {/* Product Details */}
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">{product.name}</h1>
-            <p className="text-muted-foreground">{product.category}</p>
+        {/* Product Info */}
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold">{product.name}</h1>
+          <p className="text-gray-600">{product.description}</p>
+          <p className="text-lg font-semibold mt-4">Price: GH₵{product.price.toFixed(2)}</p>
+          <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+
+          {/* Quantity Selector */}
+          <div className="flex items-center gap-4 mt-4">
+            <label htmlFor="quantity" className="text-sm font-medium">
+              Quantity:
+            </label>
+            <input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className="w-16 border rounded-md p-1 text-center"
+            />
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-5 w-5 ${i < product.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                />
-              ))}
-            </div>
-            <span className="text-sm text-muted-foreground">({product.reviews} reviews)</span>
-          </div>
-
-          <p className="text-3xl font-bold">GH₵{product.price.toFixed(2)}</p>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <h3 className="font-semibold">Description</h3>
-            <p className="text-muted-foreground">{product.description}</p>
-          </div>
-
-          {product.colors && (
-            <div className="space-y-4">
-              <h3 className="font-semibold">Colors</h3>
-              <div className="flex gap-2">
-                {product.colors.map((color) => (
-                  <div key={color} className="w-8 h-8 rounded-full border" style={{ backgroundColor: color }} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {product.sizes && (
-            <div className="space-y-4">
-              <h3 className="font-semibold">Sizes</h3>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => (
-                  <Button key={size} variant="outline" className="h-10 px-4">
-                    {size}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <h3 className="font-semibold">Quantity</h3>
-            <div className="flex items-center">
-              <Button variant="outline" size="icon" onClick={decrementQuantity} disabled={quantity <= 1}>
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-12 text-center">{quantity}</span>
-              <Button variant="outline" size="icon" onClick={incrementQuantity}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <Button size="lg" className="w-full" onClick={handleAddToCart}>
-            <ShoppingCart className="mr-2 h-5 w-5" />
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            className="mt-6 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+          >
             Add to Cart
-          </Button>
+          </button>
         </div>
       </div>
 
-      {/* Product Tabs */}
-      <Tabs defaultValue="details" className="mb-16">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="specifications">Specifications</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-        </TabsList>
-        <TabsContent value="details" className="py-4">
-          <div className="prose max-w-none">
-            <p>{product.description}</p>
-            <ul>
-              {product.features?.map((feature, index) => (
-                <li key={index}>{feature}</li>
-              ))}
-            </ul>
-          </div>
-        </TabsContent>
-        <TabsContent value="specifications" className="py-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {product.specifications?.map((spec, index) => (
-              <div key={index} className="flex justify-between border-b pb-2">
-                <span className="font-medium">{spec.name}</span>
-                <span>{spec.value}</span>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="reviews" className="py-4">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-5 w-5 ${i < product.rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                  />
-                ))}
-              </div>
-              <span className="text-lg font-medium">{product.rating} out of 5</span>
-              <span className="text-muted-foreground">Based on {product.reviews} reviews</span>
-            </div>
-
-            <Button>Write a Review</Button>
-
-            {/* Sample reviews */}
-            <div className="space-y-6 mt-8">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="border-b pb-6">
-                  <div className="flex justify-between mb-2">
-                    <h4 className="font-semibold">Customer {i + 1}</h4>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex mb-2">
-                    {[...Array(5)].map((_, j) => (
-                      <Star
-                        key={j}
-                        className={`h-4 w-4 ${j < 5 - i ? "text-yellow-400 fill-yellow-400" : "text-gray-300"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-muted-foreground">
-                    {
-                      [
-                        "Absolutely love this product! The quality is exceptional and it looks even better in person.",
-                        "Great product for the price. Comfortable and well-made.",
-                        "Decent product but took longer than expected to arrive.",
-                      ][i]
-                    }
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
       {/* Related Products */}
-      <RelatedProducts products={relatedProducts} />
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold mb-4">Related Products</h2>
+        <RelatedProducts products={relatedProducts} />
+      </div>
     </div>
   )
 }

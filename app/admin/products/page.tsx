@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -25,7 +25,6 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { products } from "@/lib/data"
 import AdminLayout from "@/components/admin-layout"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -40,10 +39,11 @@ const formSchema = z.object({
   price: z.coerce.number().positive("Price must be positive"),
   category: z.string().min(1, "Category is required"),
   stock: z.coerce.number().int().positive("Stock must be a positive integer"),
+  image: z.string().optional(),
 })
 
 export default function AdminProductsPage() {
-  const [productList, setProductList] = useState(products)
+  const [productList, setProductList] = useState([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -71,53 +71,98 @@ export default function AdminProductsPage() {
     },
   })
 
-  const onAddSubmit = (values: z.infer<typeof formSchema>) => {
+  // Fetch products from the backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch("/api/products")
+        if (!response.ok) {
+          throw new Error("Failed to fetch products")
+        }
+        const data = await response.json()
+        setProductList(data.products)
+      } catch (error) {
+        console.error("Error fetching products:", error)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
+  const onAddSubmit = async (values: z.infer<typeof formSchema>) => {
     const newProduct = {
-      id: `product-${Date.now()}`,
       name: values.name,
       description: values.description,
       price: values.price,
       category: values.category,
       stock: values.stock,
-      images: ["/placeholder.svg?height=400&width=400"],
-      rating: 0,
-      reviews: 0,
+      images: [values.image || "/placeholder.svg"],
     }
 
-    setProductList([...productList, newProduct])
-    setIsAddDialogOpen(false)
-    addForm.reset()
+    try {
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newProduct),
+      })
 
-    toast({
-      title: "Product added",
-      description: `${values.name} has been added to the product list.`,
-    })
+      if (!response.ok) {
+        throw new Error("Failed to add product")
+      }
+
+      const savedProduct = await response.json()
+      setProductList((prev) => [...prev, savedProduct]) // Update the product list
+      setIsAddDialogOpen(false)
+      addForm.reset()
+
+      toast({
+        title: "Product added",
+        description: `${values.name} has been added to the product list.`,
+      })
+    } catch (error) {
+      console.error("Error adding product:", error)
+      toast({
+        title: "Error",
+        description: "Failed to add product. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const onEditSubmit = (values: z.infer<typeof formSchema>) => {
-    const updatedProducts = productList.map((product) =>
-      product.id === selectedProduct.id ? { ...product, ...values } : product,
-    )
+  const onEditSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      const response = await fetch(`/api/products/${selectedProduct._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      })
 
-    setProductList(updatedProducts)
-    setIsEditDialogOpen(false)
+      if (!response.ok) {
+        throw new Error("Failed to update product")
+      }
 
-    toast({
-      title: "Product updated",
-      description: `${values.name} has been updated.`,
-    })
-  }
+      const updatedProduct = await response.json()
+      setProductList((prev) =>
+        prev.map((product) => (product._id === updatedProduct._id ? updatedProduct : product))
+      )
+      setIsEditDialogOpen(false)
 
-  const handleEdit = (product: any) => {
-    setSelectedProduct(product)
-    editForm.reset({
-      name: product.name,
-      description: product.description,
-      price: product.price,
-      category: product.category,
-      stock: product.stock || 10,
-    })
-    setIsEditDialogOpen(true)
+      toast({
+        title: "Product updated",
+        description: `${values.name} has been updated.`,
+      })
+    } catch (error) {
+      console.error("Error updating product:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update product. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleDelete = (product: any) => {
@@ -125,17 +170,40 @@ export default function AdminProductsPage() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
-    const updatedProducts = productList.filter((product) => product.id !== selectedProduct.id)
-    setProductList(updatedProducts)
-    setIsDeleteDialogOpen(false)
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`/api/products/${selectedProduct._id}`, {
+        method: "DELETE",
+      })
 
-    toast({
-      title: "Product deleted",
-      description: `${selectedProduct.name} has been deleted.`,
-    })
+      if (!response.ok) {
+        throw new Error("Failed to delete product")
+      }
+
+      setProductList((prev) => prev.filter((product) => product._id !== selectedProduct._id))
+      setIsDeleteDialogOpen(false)
+
+      toast({
+        title: "Product deleted",
+        description: `${selectedProduct.name} has been deleted.`,
+      })
+    } catch (error) {
+      console.error("Error deleting product:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
+//   return (
+//     <AdminLayout>
+//       {/* Render the rest of the component */}
+//       {/* The rest of the code remains unchanged */}
+//     </AdminLayout>
+//   )
+// }
   return (
     <AdminLayout>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -232,6 +300,32 @@ export default function AdminProductsPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={addForm.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                  field.onChange(reader.result); // Store the base64 image data
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <DialogFooter>
                     <Button type="submit">Add Product</Button>
                   </DialogFooter>
@@ -259,48 +353,48 @@ export default function AdminProductsPage() {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {productList.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="relative w-10 h-10 rounded-md overflow-hidden">
-                        <Image
-                          src={product.images[0] || "/placeholder.svg"}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{product.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>GH₵{product.price.toFixed(2)}</TableCell>
-                    <TableCell>{product.stock || "10"}</TableCell>
-                    <TableCell>{product.rating} ★</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleEdit(product)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(product)}>
-                            <Trash className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+                <TableBody>
+                  {productList.map((product) => (
+                    <TableRow key={product._id}>
+                      <TableCell>
+                        <div className="relative w-10 h-10 rounded-md overflow-hidden">
+                          <Image
+                            src={product.images[0] || "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell>{product.category}</TableCell>
+                      <TableCell>GH₵{product.price.toFixed(2)}</TableCell>
+                      <TableCell>{product.stock || "10"}</TableCell>
+                      <TableCell>{product.rating} ★</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleEdit(product)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(product)}>
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
             </Table>
           </CardContent>
         </Card>
@@ -347,7 +441,7 @@ export default function AdminProductsPage() {
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price ($)</FormLabel>
+                      <FormLabel>Price (GH₵)</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" {...field} />
                       </FormControl>
