@@ -94,7 +94,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <span className="text-sm text-muted-foreground">({product.reviews} reviews)</span>
           </div>
 
-          <p className="text-3xl font-bold">${product.price.toFixed(2)}</p>
+          <p className="text-3xl font-bold">GH₵{product.price.toFixed(2)}</p>
 
           <Separator />
 

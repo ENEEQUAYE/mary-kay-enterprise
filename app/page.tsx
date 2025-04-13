@@ -59,7 +59,7 @@ export default function Home() {
                 <CardContent className="p-4">
                   <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
                   <p className="text-muted-foreground mb-2">{product.category}</p>
-                  <p className="font-bold">${product.price.toFixed(2)}</p>
+                  <p className="font-bold">GH₵{product.price.toFixed(2)}</p>
                 </CardContent>
               </Card>
             </Link>

@@ -259,7 +259,7 @@ export default function AdminCustomersPage() {
                       <TableCell>{customer.email}</TableCell>
                       <TableCell>{customer.phone}</TableCell>
                       <TableCell>{customer.orders}</TableCell>
-                      <TableCell className="text-right">${customer.totalSpent.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">GH₵{customer.totalSpent.toFixed(2)}</TableCell>
                       <TableCell>{formatDate(customer.createdAt)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

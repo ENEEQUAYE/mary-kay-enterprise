@@ -72,7 +72,7 @@ export default function CartPage() {
                       </Link>
                       <p className="text-sm text-muted-foreground">{item.product.category}</p>
                     </TableCell>
-                    <TableCell className="text-right">${item.product.price.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">GH₵{item.product.price.toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-center">
                         <Button
@@ -96,7 +96,7 @@ export default function CartPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ${(item.product.price * item.quantity).toFixed(2)}
+                    GH₵{(item.product.price * item.quantity).toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.product.id)}>
@@ -126,12 +126,12 @@ export default function CartPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span>${cartTotal.toFixed(2)}</span>
+                <span>GH₵{cartTotal.toFixed(2)}</span>
               </div>
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Discount</span>
-                  <span>-${discount.toFixed(2)}</span>
+                  <span>-GH₵{discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -144,7 +144,7 @@ export default function CartPage() {
 
             <div className="flex justify-between text-lg font-semibold">
               <span>Total</span>
-              <span>${(cartTotal - discount).toFixed(2)}</span>
+              <span>GH₵{(cartTotal - discount).toFixed(2)}</span>
             </div>
 
             <div className="space-y-2">

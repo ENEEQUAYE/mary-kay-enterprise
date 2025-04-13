@@ -274,7 +274,7 @@ export default function AdminProductsPage() {
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
+                    <TableCell>GH₵{product.price.toFixed(2)}</TableCell>
                     <TableCell>{product.stock || "10"}</TableCell>
                     <TableCell>{product.rating} ★</TableCell>
                     <TableCell className="text-right">

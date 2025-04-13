@@ -398,7 +398,7 @@ export default function CheckoutPage() {
                     <p className="font-medium">{item.product.name}</p>
                     <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                   </div>
-                  <p className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">GH₵{(item.product.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
             </div>

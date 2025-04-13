@@ -68,7 +68,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <p className="text-muted-foreground text-sm">{product.category}</p>
           </div>
           <div className="flex items-center justify-between">
-            <p className="font-bold">${product.price.toFixed(2)}</p>
+            <p className="font-bold">GH₵{product.price.toFixed(2)}</p>
             <Button variant="outline" size="sm" className="rounded-full" onClick={handleAddToCart}>
               <ShoppingCart className="h-4 w-4 mr-2" />
               Add

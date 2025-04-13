@@ -107,8 +107,8 @@ export default function ProductsPage() {
           className="my-6"
         />
         <div className="flex justify-between">
-          <span>${priceRange[0]}</span>
-          <span>${priceRange[1]}</span>
+          <span>GH₵{priceRange[0]}</span>
+          <span>GH₵{priceRange[1]}</span>
         </div>
       </div>
 

@@ -5,19 +5,19 @@ import Link from "next/link"
 const categories = [
   {
     name: "Bedsheets",
-    image: "/placeholder.svg?height=600&width=600",
+    image: "/bedsheet.jpg?height=600&width=600",
     description: "Luxurious bedsheets for a comfortable sleep",
     link: "/products?category=Bedsheets",
   },
   {
     name: "Towels",
-    image: "/placeholder.svg?height=600&width=600",
+    image: "/towel.jpg?height=600&width=600",
     description: "Soft and absorbent towels for your bathroom",
     link: "/products?category=Towels",
   },
   {
     name: "Pillow Cases",
-    image: "/placeholder.svg?height=600&width=600",
+    image: "/pillowcases.jpg?height=600&width=600",
     description: "Comfortable pillow cases for a good night's sleep",
     link: "/products?category=Pillow%20Cases",
   },
